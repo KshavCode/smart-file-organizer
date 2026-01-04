@@ -1,0 +1,10 @@
+appx
+exe
+apk
+jar
+bin
+bat
+rbxl
+rbxlx
+sb
+vol

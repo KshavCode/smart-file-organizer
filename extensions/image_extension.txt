@@ -1,0 +1,13 @@
+jpg
+png
+gif
+svg
+jfif
+avif
+jpeg
+webp
+ico
+bmp
+tif
+tiff
+gifv

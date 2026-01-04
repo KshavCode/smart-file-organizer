@@ -1,0 +1,12 @@
+mp4
+mov
+wmv
+flv
+avi
+webm
+mkv
+flv
+m4v
+mpeg
+svi
+nsv
