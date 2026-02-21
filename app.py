@@ -1,83 +1,151 @@
-from tkinter import *
-import tkinter.ttk as ttk 
-from tkinter import filedialog
-import tkinter.messagebox as mb
-import terminal as m
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import os
+import shutil
+from pathlib import Path
 
+class Sortify:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Sortify - Smart File Organizer")
+        self.root.geometry("550x450")
+        self.root.configure(bg="#F8FAFC")
+        self.root.resizable(False, False)
 
-root = Tk()
-root.geometry("500x250")
-root.title("File Organizer")
+        # --- State ---
+        self.target_dir = tk.StringVar(value="No folder selected")
+        self.organize_type = tk.IntVar(value=0)
 
+        # Map folders to extensions (can be loaded from files as per your logic)
+        self.extension_map = {
+            "images_": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"],
+            "videos_": [".mp4", ".mkv", ".mov", ".avi"],
+            "documents_": [".pdf", ".docx", ".txt", ".xlsx", ".pptx"],
+            "audios_": [".mp3", ".wav", ".flac", ".m4a"],
+            "apps_": [".exe", ".msi", ".apk", ".bat"]
+        }
 
-def NewWindow() :
-    def Sorting2() :
-        if choice_var.get() == 0 :
-            mb.showerror("ERROR", "Kindly select the sorting option!")
-        else :
-            try :
-                if len(FileDestination_Var.get())==29 :
-                    mb.showerror("ERROR", f"Kindly enter the word which you want to focus on!")
-                    root2.destroy()
-                else :
-                    m.sort2(FileDestination_Var.get(), choice_var.get(), word_var.get())
-                    mb.showinfo("SUCCESS", "The folder has been organized!")
-                    root2.destroy()
-            except Exception as e : 
-                mb.showerror("ERROR", f"Kindly check if you specified the folder destination correctly and it's button is green.\n{e}")
-                root2.destroy()
-            
-    
-    root2 = Toplevel(root)
-    root2.geometry("250x250")
-    
-    word_var = StringVar()
-    choice_var = IntVar()
-    word_txt = Label(root2, text="Word to use :", font="corbel 13")
-    word_input = Entry(root2,width=10, textvariable=word_var)
-    
-    check1 = Radiobutton(root2, text="Starts with", font="corbel 13", value=1, indicatoron=False, background="#ffbcae", variable=choice_var)
-    check2 = Radiobutton(root2, text="Ends with", font="corbel 13", value=2, indicatoron=False, background="#ffbcae", variable=choice_var)
-    check3 = Radiobutton(root2, text="Contains", font="corbel 13", value=3, indicatoron=False, background="#ffbcae", variable=choice_var)
-    
-    confirm_button = ttk.Button(root2, text="Confirm", command=Sorting2)
-    
-    word_txt.place(x=10, y=10)
-    word_input.place(x=110, y=15)
-    check1.place(x=75, y=50)
-    check2.place(x=75, y=85)
-    check3.place(x=75, y=120)
-    confirm_button.place(x=85, y=170)
+        self.setup_ui()
 
-def OpenFolder() :
-    FileDestination_Var.set(filedialog.askdirectory())
-    FileDestination_Button.config(background="lightgreen", text="Click to Change", width=15)
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.root, bg="#F8FAFC")
+        header.pack(fill="x", pady=(30, 20))
+        tk.Label(header, text="Sortify", font=("Helvetica", 24, "bold"), bg="#F8FAFC", fg="#1E293B").pack()
+        tk.Label(header, text="Organize your workspace instantly", font=("Helvetica", 11), bg="#F8FAFC", fg="#64748B").pack()
 
-def SortIt() :
-    if OptionNumber.get()==0 :
-        mb.showerror("ERROR", "Kindly select the type of Organize!")
-    elif OptionNumber.get()==1 :
-        m.sort1(FileDestination_Var.get())
-        mb.showinfo("SUCCESS", "The folder has been organized!")
-    elif OptionNumber.get() == 2 :
-        NewWindow()
+        # Card
+        card = tk.Frame(self.root, bg="#FFFFFF", bd=1, relief="solid", padx=20, pady=20)
+        card.pack(fill="x", padx=40)
+
+        # Path Selection
+        path_frame = tk.Frame(card, bg="#FFFFFF")
+        path_frame.pack(fill="x", pady=(0, 10))
+        self.path_lbl = tk.Label(path_frame, textvariable=self.target_dir, font=("Helvetica", 10), bg="#FFFFFF", fg="#64748B", wraplength=280)
+        self.path_lbl.pack(side="left")
         
+        tk.Button(card, text="Select Folder", font=("Helvetica", 10, "bold"), bg="#F1F5F9", relief="flat", command=self.open_folder).pack(fill="x")
 
-FileDestination_Var = StringVar()
-OptionNumber = IntVar(value=0)
+        # Options
+        opts_frame = tk.Frame(self.root, bg="#F8FAFC", pady=20)
+        opts_frame.pack(fill="x", padx=40)
+        style = ttk.Style()
+        style.configure("TRadiobutton", background="#F8FAFC", font=("Helvetica", 13))
+        ttk.Radiobutton(opts_frame, text="Organize by File Type", variable=self.organize_type, value=1).pack(anchor="w")
+        ttk.Radiobutton(opts_frame, text="Organize by Keyword", variable=self.organize_type, value=2).pack(anchor="w")
 
-FileDestination_Text = Label(root, text="Select Folder : ", font="corbel 15")
-FileDestination_Button = Button(root, text="Open", font="corbel 13", width=10, background="red", command=OpenFolder)
-sort1check = Radiobutton(root, text="Organize by type", value=1, variable=OptionNumber, font="corbel 13")
-sort2check = Radiobutton(root, text="Organize by word", value=2, variable=OptionNumber, font="corbel 13")
-Done_Button = ttk.Button(root, text="Proceed", width=15, command=SortIt)
+        # Execute
+        tk.Button(self.root, text="Start Organizing", font=("Helvetica", 12, "bold"), bg="#3B82F6", fg="white", relief="flat", height=2, command=self.run_logic).pack(fill="x", padx=40, pady=10)
 
-FileDestination_Text.place(x=10, y=50)
-FileDestination_Button.place(x=140, y=50)
-sort1check.place(x=140, y=120)
-sort2check.place(x=140, y=150)
-Done_Button.place(x=170, y=200)
+    def open_folder(self):
+        selected = filedialog.askdirectory()
+        if selected:
+            self.target_dir.set(selected)
+            self.path_lbl.config(fg="#10B981")
 
+    def run_logic(self):
+        loc = self.target_dir.get()
+        if loc == "No folder selected":
+            messagebox.showerror("Error", "Please select a directory!")
+            return
 
+        mode = self.organize_type.get()
+        if mode == 1:
+            self.sort_by_type(loc)
+        elif mode == 2:
+            self.open_keyword_modal(loc)
+        else:
+            messagebox.showwarning("Selection", "Choose an organization method.")
 
-root.mainloop()
+    # --- Backend Logic Integrated ---
+
+    def sort_by_type(self, loc):
+        """Logic for sort1: Grouping by extension."""
+        try:
+            files = [f for f in os.listdir(loc) if os.path.isfile(os.path.join(loc, f))]
+            moved_count = 0
+
+            for f in files:
+                ext = Path(f).suffix.lower()
+                dest_folder = "extras_"
+                
+                for folder, extensions in self.extension_map.items():
+                    if ext in extensions:
+                        dest_folder = folder
+                        break
+                
+                # Create folder and move
+                target_path = Path(loc) / dest_folder
+                target_path.mkdir(exist_ok=True)
+                shutil.move(Path(loc) / f, target_path / f)
+                moved_count += 1
+
+            messagebox.showinfo("Success", f"Organized {moved_count} files into categories!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not organize: {e}")
+
+    def open_keyword_modal(self, loc):
+        """Logic for sort2: Keyword pattern."""
+        win = tk.Toplevel(self.root)
+        win.title("Keyword Settings")
+        win.geometry("300x300")
+        win.grab_set()
+
+        tk.Label(win, text="Keyword Pattern", font=("Helvetica", 12, "bold")).pack(pady=10)
+        word_var = tk.StringVar()
+        tk.Entry(win, textvariable=word_var, font=("Helvetica", 12)).pack(pady=5, padx=20)
+
+        logic_var = tk.IntVar(value=3)
+        tk.Radiobutton(win, text="Starts with", variable=logic_var, value=1).pack(anchor="w", padx=50)
+        tk.Radiobutton(win, text="Ends with", variable=logic_var, value=2).pack(anchor="w", padx=50)
+        tk.Radiobutton(win, text="Contains", variable=logic_var, value=3).pack(anchor="w", padx=50)
+
+        def execute():
+            keyword = word_var.get().strip()
+            if not keyword: return
+            
+            all_files = [f for f in os.listdir(loc) if os.path.isfile(os.path.join(loc, f))]
+            
+            if logic_var.get() == 1:
+                matches = [f for f in all_files if f.lower().startswith(keyword.lower())]
+            elif logic_var.get() == 2:
+                matches = [f for f in all_files if Path(f).stem.lower().endswith(keyword.lower())]
+            else:
+                matches = [f for f in all_files if keyword.lower() in f.lower()]
+
+            if matches:
+                dest = Path(loc) / keyword
+                dest.mkdir(exist_ok=True)
+                for f in matches:
+                    shutil.move(Path(loc) / f, dest / f)
+                messagebox.showinfo("Done", f"Moved {len(matches)} files to folder '{keyword}'")
+            else:
+                messagebox.showwarning("No Match", "No files matched that keyword.")
+            win.destroy()
+
+        tk.Button(win, text="Run", bg="#10B981", fg="white", command=execute).pack(pady=20)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Sortify(root)
+    root.mainloop()
